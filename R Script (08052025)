@@ -1,0 +1,216 @@
+# Complete R Script for Job Application Sankey Diagram
+# Author: Generated for job application flow visualization
+# Date: July 2025
+
+# Install required packages if not already installed
+# Uncomment the following lines if packages are not installed
+# install.packages(c("networkD3", "dplyr", "htmlwidgets"))
+
+# Load required libraries
+library(networkD3)
+library(dplyr)
+library(htmlwidgets)
+
+# ========================================
+# DATA PREPARATION
+# ========================================
+
+# Define nodes with labels including numbers and color groups
+nodes <- data.frame(
+  name = c(
+    "Applications (181)",      # 0 - Updated to 181
+    "Replied (12)",           # 1 - Updated to 12
+    "Rejected (52)",          # 2 - Updated to 52
+    "No Response (117)",      # 3 - Recalculated: 181 - 12 - 52 = 117
+    "1st Interview (8)",      # 4 - Updated to 8
+    "OA (1)",                # 5 - Online Assessment (remains the same)
+    "2nd Interview (3)"       # 6 - Updated to 3
+  ),
+  group = c(
+    "default",               # 0 - Applications (blue default)
+    "replied",               # 1 - Replied (orange)
+    "rejected",              # 2 - Rejected (red)
+    "no_response",           # 3 - No Response (brown)
+    "interview",             # 4 - 1st Interview (green)
+    "oa",                    # 5 - OA (cyan)
+    "interview_2nd"          # 6 - 2nd Interview (purple)
+  ),
+  stringsAsFactors = FALSE
+)
+
+# Create links between nodes with group information for coloring
+# Format: source, target, value, group (for link colors)
+links <- data.frame(
+  source = c(0, 0, 0, 1, 1, 4),  # Source node indices
+  target = c(1, 2, 3, 4, 5, 6),  # Target node indices
+  value = c(12, 52, 117, 8, 1, 3), # Flow values - Updated: replied=12, rejected=52, no response=117, 1st interview=8, oa=1, 2nd interview=3
+  group = c("replied", "rejected", "no_response", "interview", "oa", "interview_2nd"), # Link color groups
+  stringsAsFactors = FALSE
+)
+
+# ========================================
+# DATA VALIDATION
+# ========================================
+
+# Verify the data adds up correctly
+total_applications <- 181  # Updated from 161
+calculated_total <- sum(links$value[links$source == 0])
+cat("Data Validation:\n")
+cat("Expected total applications:", total_applications, "\n")
+cat("Calculated total from links:", calculated_total, "\n")
+
+if (total_applications == calculated_total) {
+  cat("✓ Data validation passed!\n\n")
+} else {
+  cat("✗ Data validation failed - check your numbers!\n\n")
+}
+
+# ========================================
+# COLOR SCHEME DEFINITION
+# ========================================
+
+# Define custom color palette using D3 scale
+my_color <- 'd3.scaleOrdinal()
+  .domain(["default", "replied", "rejected", "no_response", "interview", "oa", "interview_2nd"])
+  .range(["#1f77b4", "#ff7f0e", "#d62728", "#8b4513", "#2ca02c", "#00bcd4", "#9467bd"])'
+
+# Color mapping explanation:
+# "#1f77b4" - Blue (default/applications)
+# "#ff7f0e" - Orange (replied)
+# "#d62728" - Red (rejected)
+# "#8b4513" - Brown (no response)
+# "#2ca02c" - Green (1st interviews)
+# "#00bcd4" - Cyan (OA)
+# "#9467bd" - Purple (2nd interviews)
+
+# ========================================
+# SANKEY DIAGRAM CREATION
+# ========================================
+
+# Create the Sankey diagram
+sankey_plot <- sankeyNetwork(
+  Links = links,
+  Nodes = nodes,
+  Source = "source",
+  Target = "target",
+  Value = "value",
+  NodeID = "name",
+  NodeGroup = "group",        # Color nodes by group
+  LinkGroup = "group",        # Color links by group
+  colourScale = my_color,     # Apply custom color scheme
+  units = "applications",     # Unit label for tooltips
+  fontSize = 14,              # Font size for labels
+  nodeWidth = 30,             # Width of node rectangles
+  nodePadding = 15,           # Vertical spacing between nodes
+  margin = list(top = 50, right = 100, bottom = 50, left = 100),
+  height = 600,               # Plot height
+  width = 900,                # Plot width
+  sinksRight = FALSE,         # Keep nodes left-aligned
+  fontFamily = "Times New Roman"  # Changed from Arial to Times New Roman
+)
+
+# ========================================
+# ENHANCED LINK COLORING (BACKUP METHOD)
+# ========================================
+
+# Alternative method to ensure link colors work
+# This uses JavaScript to manually color links if LinkGroup doesn't work
+sankey_plot_enhanced <- htmlwidgets::onRender(sankey_plot, '
+  function(el, x) {
+    // Define colors matching our scheme
+    var colors = {
+      "default": "#1f77b4",
+      "replied": "#ff7f0e", 
+      "rejected": "#d62728",
+      "no_response": "#8b4513",
+      "interview": "#2ca02c",
+      "oa": "#00bcd4",
+      "interview_2nd": "#9467bd"
+    };
+    
+    // Define link groups in order (matching the links data frame)
+    var linkGroups = ["replied", "rejected", "no_response", "interview", "oa", "interview_2nd"];
+    
+    // Apply colors to links and set font family to Times New Roman
+    d3.select(el).selectAll(".link")
+      .style("stroke", function(d, i) {
+        return colors[linkGroups[i]];
+      })
+      .style("stroke-opacity", 0.7)
+      .style("fill-opacity", 0.7);
+    
+    // Ensure all text elements use Times New Roman font
+    d3.select(el).selectAll("text")
+      .style("font-family", "Times New Roman");
+  }
+')
+
+# ========================================
+# DISPLAY OPTIONS
+# ========================================
+
+# Option 1: Display basic plot (try this first)
+print("Displaying Sankey diagram...")
+sankey_plot
+
+# Option 2: If colors don't work, try enhanced version
+# Uncomment the line below if you want to use the JavaScript-enhanced version
+# sankey_plot_enhanced
+
+# ========================================
+# SAVE PLOT (OPTIONAL)
+# ========================================
+
+# Save the plot as an HTML file
+# Uncomment the following lines to save
+# htmlwidgets::saveWidget(sankey_plot, "job_application_sankey.html", selfcontained = TRUE)
+# cat("Plot saved as 'job_application_sankey.html'\n")
+
+# ========================================
+# SUMMARY STATISTICS
+# ========================================
+
+cat("\n", paste(rep("=", 50), collapse=""), "\n")
+cat("JOB APPLICATION FLOW ANALYSIS\n")
+cat(paste(rep("=", 50), collapse=""), "\n\n")
+
+# Basic statistics
+cat("OVERALL METRICS:\n")
+cat("Total Applications:", total_applications, "\n")
+cat("Applications with Response:", 12 + 52, "(", round(((12+52)/181)*100, 1), "%)\n")
+cat("Applications with No Response:", 117, "(", round((117/181)*100, 1), "%)\n\n")
+
+# Response breakdown
+cat("RESPONSE BREAKDOWN:\n")
+cat("Positive Replies:", 12, "(", round((12/181)*100, 1), "% of total)\n")
+cat("Rejections:", 52, "(", round((52/181)*100, 1), "% of total)\n")
+cat("No Response:", 117, "(", round((117/181)*100, 1), "% of total)\n\n")
+
+# Conversion rates
+cat("CONVERSION RATES:\n")
+cat("Reply to Interview Rate:", round((8/12)*100, 1), "% (8 interviews from 12 replies)\n")
+cat("1st to 2nd Interview Rate:", round((3/8)*100, 1), "% (3 second interviews from 8 first interviews)\n")
+cat("Overall Interview Rate:", round((8/181)*100, 1), "% (8 interviews from 181 applications)\n")
+cat("Overall Success Rate to 2nd Interview:", round((3/181)*100, 1), "% (3 second interviews from 181 applications)\n\n")
+
+# Recommendations
+cat("INSIGHTS:\n")
+cat("• Response rate is relatively low at", round(((12+52)/181)*100, 1), "%\n")
+cat("• Most applications (", round((117/181)*100, 1), "%) receive no response\n")
+cat("• Once you get a reply, interview rate is strong at", round((8/12)*100, 1), "%\n")
+cat("• Focus on improving initial response rates\n")
+cat("• Consider following up on applications with no response\n\n")
+
+cat("Sankey diagram generation complete!\n")
+
+# ========================================
+# TROUBLESHOOTING GUIDE
+# ========================================
+
+cat("\nTROUBLESHOoting GUIDE:\n")
+cat("If the plot doesn't display:\n")
+cat("1. Check that all packages are installed\n")
+cat("2. Try: options(viewer = NULL) to force browser display\n")
+cat("3. Save as HTML and open manually\n")
+cat("4. Check RStudio plots pane or viewer\n")
+cat("5. Try restarting R session\n")
